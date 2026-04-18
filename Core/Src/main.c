@@ -25,7 +25,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "bsp_log.h"
+#include "bsp_can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -96,6 +97,8 @@ int main(void)
   MX_SPI6_Init();
   MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
+  BSPLogInit();
+
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_14,GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_15,GPIO_PIN_SET);
@@ -103,8 +106,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  int count = 0;
   while (1)
   {
+    count ++;
+    PrintLog("Log test:%d\n", count);
+    HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
