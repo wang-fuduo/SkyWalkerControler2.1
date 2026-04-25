@@ -56,8 +56,8 @@
 
 /* External variables --------------------------------------------------------*/
 extern FDCAN_HandleTypeDef hfdcan1;
-extern DMA_HandleTypeDef hdma_spi6_tx;
-extern SPI_HandleTypeDef hspi6;
+extern FDCAN_HandleTypeDef hfdcan2;
+extern FDCAN_HandleTypeDef hfdcan3;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -215,59 +215,31 @@ void FDCAN1_IT0_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles FDCAN1 interrupt 1.
+  * @brief This function handles FDCAN2 interrupt 0.
   */
-void FDCAN1_IT1_IRQHandler(void)
+void FDCAN2_IT0_IRQHandler(void)
 {
-  /* USER CODE BEGIN FDCAN1_IT1_IRQn 0 */
+  /* USER CODE BEGIN FDCAN2_IT0_IRQn 0 */
 
-  /* USER CODE END FDCAN1_IT1_IRQn 0 */
-  HAL_FDCAN_IRQHandler(&hfdcan1);
-  /* USER CODE BEGIN FDCAN1_IT1_IRQn 1 */
+  /* USER CODE END FDCAN2_IT0_IRQn 0 */
+  HAL_FDCAN_IRQHandler(&hfdcan2);
+  /* USER CODE BEGIN FDCAN2_IT0_IRQn 1 */
 
-  /* USER CODE END FDCAN1_IT1_IRQn 1 */
+  /* USER CODE END FDCAN2_IT0_IRQn 1 */
 }
 
 /**
-  * @brief This function handles FDCAN calibration unit interrupt.
+  * @brief This function handles FDCAN3 interrupt 0.
   */
-void FDCAN_CAL_IRQHandler(void)
+void FDCAN3_IT0_IRQHandler(void)
 {
-  /* USER CODE BEGIN FDCAN_CAL_IRQn 0 */
+  /* USER CODE BEGIN FDCAN3_IT0_IRQn 0 */
 
-  /* USER CODE END FDCAN_CAL_IRQn 0 */
-  HAL_FDCAN_IRQHandler(&hfdcan1);
-  /* USER CODE BEGIN FDCAN_CAL_IRQn 1 */
+  /* USER CODE END FDCAN3_IT0_IRQn 0 */
+  HAL_FDCAN_IRQHandler(&hfdcan3);
+  /* USER CODE BEGIN FDCAN3_IT0_IRQn 1 */
 
-  /* USER CODE END FDCAN_CAL_IRQn 1 */
-}
-
-/**
-  * @brief This function handles SPI6 global interrupt.
-  */
-void SPI6_IRQHandler(void)
-{
-  /* USER CODE BEGIN SPI6_IRQn 0 */
-
-  /* USER CODE END SPI6_IRQn 0 */
-  HAL_SPI_IRQHandler(&hspi6);
-  /* USER CODE BEGIN SPI6_IRQn 1 */
-
-  /* USER CODE END SPI6_IRQn 1 */
-}
-
-/**
-  * @brief This function handles BDMA channel0 global interrupt.
-  */
-void BDMA_Channel0_IRQHandler(void)
-{
-  /* USER CODE BEGIN BDMA_Channel0_IRQn 0 */
-
-  /* USER CODE END BDMA_Channel0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi6_tx);
-  /* USER CODE BEGIN BDMA_Channel0_IRQn 1 */
-
-  /* USER CODE END BDMA_Channel0_IRQn 1 */
+  /* USER CODE END FDCAN3_IT0_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

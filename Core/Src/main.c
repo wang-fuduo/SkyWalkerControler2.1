@@ -18,9 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "bdma.h"
 #include "fdcan.h"
-#include "spi.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -52,9 +50,52 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MPU_Config(void);
 /* USER CODE BEGIN PFP */
+void send_test(FDCAN_TxFrame_TypeDef *TxFrame, const uint16_t data, const uint32_t ID) {
+  TxFrame->Header.Identifier = ID;
+  TxFrame->Data[0] = 0xA1;
+  TxFrame->Data[1] = 0x00;
+  TxFrame->Data[2] = 0x00;
+  TxFrame->Data[3] = 0x00;
+  TxFrame->Data[4] = data;
+  TxFrame->Data[5] = data >> 8;
+  TxFrame->Data[6] = 0x00;
+  TxFrame->Data[7] = 0x00;
 
+  HAL_FDCAN_AddMessageToTxFifoQ(TxFrame->hcan, &TxFrame->Header, TxFrame->Data);
+}
+void send_test2(FDCAN_TxFrame_TypeDef *TxFrame, const uint16_t pos, const uint16_t vel, const uint16_t kp, const uint16_t kd, uint32_t ID) {
+  uint32_t id = 0;
+  id |= ((1 & 0x1F) << 24); // 通信类型
+  id |= (32768 << 8);     // ⚠️ 力矩在这里（关键！）
+  id |= (ID);           // 电机ID
+
+  TxFrame->Header.Identifier = id;
+
+  TxFrame->Data[0] = pos >> 8;
+  TxFrame->Data[1] = pos & 0xFF;
+  TxFrame->Data[2] = vel >> 8;;
+  TxFrame->Data[3] = vel & 0xFF;
+  TxFrame->Data[4] = kp >> 8;
+  TxFrame->Data[5] = kp & 0xFF;
+  TxFrame->Data[6] = kd >> 8;
+  TxFrame->Data[7] = kd & 0xFF;
+
+  HAL_FDCAN_AddMessageToTxFifoQ(TxFrame->hcan, &TxFrame->Header, TxFrame->Data);
+}
+void motor_enable(FDCAN_TxFrame_TypeDef *TxFrame, uint8_t master_id, uint8_t motor_id)
+{
+  uint32_t id = 0;
+  id |= ((3 & 0x1F) << 24);        // 通信类型 = 3（使能）
+  id |= ((master_id & 0xFFFF) << 8); // 主机ID（bit23~8）
+  id |= (motor_id & 0xFF);         // 电机ID（bit7~0）
+
+  TxFrame->Header.Identifier = id;
+
+  for (int i = 0; i < 8; i++)
+    TxFrame->Data[i] = 0;
+  HAL_FDCAN_AddMessageToTxFifoQ(TxFrame->hcan, &TxFrame->Header, TxFrame->Data);
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -71,9 +112,6 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
-
-  /* MPU Configuration--------------------------------------------------------*/
-  MPU_Config();
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -93,15 +131,20 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_BDMA_Init();
-  MX_SPI6_Init();
   MX_FDCAN1_Init();
+  MX_FDCAN2_Init();
+  MX_FDCAN3_Init();
   /* USER CODE BEGIN 2 */
   BSPLogInit();
+  BSP_FDCAN_Init();
 
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_14,GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOC,GPIO_PIN_15,GPIO_PIN_SET);
+
+  HAL_Delay(3000);
+  send_test(&hfdcan1TxFrame, 500, 0x144);
+  motor_enable(&hfdcan2TxFrame, 0x00, 0x03);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -111,7 +154,9 @@ int main(void)
   {
     count ++;
     PrintLog("Log test:%d\n", count);
-    HAL_Delay(500);
+    HAL_Delay(10);
+    send_test2(&hfdcan2TxFrame,32768,32768,10,200,0x03);
+    //send_test(&hfdcan1TxFrame, 500, 0x144);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -134,7 +179,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE0);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -146,9 +191,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 2;
-  RCC_OscInitStruct.PLL.PLLN = 16;
+  RCC_OscInitStruct.PLL.PLLN = 40;
   RCC_OscInitStruct.PLL.PLLP = 1;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
@@ -165,13 +210,13 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -180,35 +225,6 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
-
- /* MPU Configuration */
-
-void MPU_Config(void)
-{
-  MPU_Region_InitTypeDef MPU_InitStruct = {0};
-
-  /* Disables the MPU */
-  HAL_MPU_Disable();
-
-  /** Initializes and configures the Region and the memory to be protected
-  */
-  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
-  MPU_InitStruct.Number = MPU_REGION_NUMBER0;
-  MPU_InitStruct.BaseAddress = 0x0;
-  MPU_InitStruct.Size = MPU_REGION_SIZE_4GB;
-  MPU_InitStruct.SubRegionDisable = 0x87;
-  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
-  MPU_InitStruct.AccessPermission = MPU_REGION_NO_ACCESS;
-  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
-  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
-  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
-  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
-
-  HAL_MPU_ConfigRegion(&MPU_InitStruct);
-  /* Enables the MPU */
-  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
-
-}
 
 /**
   * @brief  This function is executed in case of error occurrence.

@@ -34,7 +34,9 @@ enable_language(C ASM)
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
         Core/bsp/can/bsp_can.c
-        Core/bsp/can/bsp_can.h)
+        Core/bsp/can/bsp_can.h
+        Core/modules/LK-MG/lk-mg_motor.c
+        Core/modules/LK-MG/lk-mg_motor.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
